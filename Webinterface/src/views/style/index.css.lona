@@ -1,0 +1,33 @@
+body {
+    background-color: #121212;
+    color: white;
+}
+.navbar {
+    background-color: #1e1e1e;
+    border-bottom-left-radius: 15px; /* Rounded bottom left corner */
+    border-bottom-right-radius: 15px; /* Rounded bottom right corner */
+}
+.navbar-brand, .navbar-nav .nav-link {
+    color: white;
+}
+.navbar-brand:hover, .navbar-nav .nav-link:hover {
+    color: #00bcd4;
+}
+.dropdown-menu {
+    background-color: #333;
+}
+.dropdown-item:hover {
+    background-color: #00bcd4;
+    color: white;
+}
+.welcome-container {
+    text-align: center;
+    margin-top: 100px;
+}
+.welcome-container h1 {
+    font-weight: 600;
+    font-size: 3rem;
+}
+.welcome-container p {
+    font-size: 1.2rem;
+}

@@ -1,0 +1,42 @@
+body {
+    background-color: #121212;
+    color: white;
+}
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+.login-box {
+    background-color: #1e1e1e;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 400px;
+}
+.login-box h2 {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+.form-control {
+    background-color: #333;
+    border: 1px solid #444;
+    color: white;
+}
+.form-control:focus {
+    border-color: #00bcd4;
+    box-shadow: none;
+}
+.form-control::placeholder {
+    color: #888; /* Hellerer Hinweistext */
+}
+.btn-primary {
+    background-color: #00bcd4;
+    border: none;
+}
+.btn-primary:hover {
+    background-color: #0097a7;
+}

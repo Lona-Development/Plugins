@@ -1,0 +1,39 @@
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('createTableBtnModal').addEventListener('click', function() {
+        // Get the input value from the modal
+        var tableName = document.getElementById('tableNameInput').value;
+
+        // Check if input is not empty
+        if (tableName.trim() === "") {
+            alert("Please enter a table name.");
+            return;
+        }
+
+        // Create the form data to be sent via POST request
+        var formData = new FormData();
+
+        // Create a new AJAX request
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/create/table', true);
+
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+        // Set up the request to handle the response
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                // Successfully created the table, redirect or update as needed
+                alert('Table created successfully!');
+                window.location.reload(); // Redirect to the tables list
+            } else {
+                // Handle errors, e.g. invalid response or server error
+                alert('Failed to create table. Please try again.');
+            }
+        };
+
+        // Send the POST request with the form data
+        xhr.send("table=" + tableName);
+
+        // Close the modal
+        $('#createTableModal').modal('hide');
+    });
+});

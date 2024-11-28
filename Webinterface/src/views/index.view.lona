@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <?php include "util/head.util.lona"; ?>
+
+    <!-- Render Specific Styles -->
+    <style>
+        <?php include "style/index.css.lona"; ?>
+    </style>
+</head>
+<body>
+    <?php include "util/navbar.util.lona" ?>
+    <?php include "util/modal.util.lona" ?>
+
+    <!-- Welcome Section -->
+    <div class="welcome-container">
+        <h1>Welcome to your LonaDB!</h1>
+        <p>Fast. Simple. Secure.</p>
+        <p>Manage your database effectively.</p>
+    </div>
+</body>
+</html>

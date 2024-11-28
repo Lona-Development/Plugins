@@ -1,0 +1,62 @@
+* Modal Dialog Centering */
+.modal-dialog-centered {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100% - 1rem); /* Vertically center */
+}
+
+/* Dark background color for modal */
+.modal-content {
+    background-color: #1e1e1e;
+    color: white;
+    border-radius: 8px; /* Optional: rounded corners */
+}
+
+/* Modal Header - Darker background with white text */
+.modal-header {
+    background-color: #1e1e1e;
+    border-bottom: 1px solid #333;
+    color: white;
+}
+
+/* Input Fields */
+.modal-body input {
+    background-color: #333;
+    color: white;
+    border: 1px solid #444;
+}
+
+/* Input Focus */
+.modal-body input:focus {
+    border-color: #00bcd4;
+    box-shadow: none;
+}
+
+/* Input Placeholder Color */
+.modal-body input::placeholder {
+    color: #888;
+}
+
+/* Buttons: Cancel & Okay */
+.modal-footer .btn {
+    border-radius: 4px; /* Rounded corners for buttons */
+}
+
+.modal-footer .btn-secondary {
+    background-color: #555;
+    border: none;
+}
+
+.modal-footer .btn-secondary:hover {
+    background-color: #666;
+}
+
+.modal-footer .btn-primary {
+    background-color: #00bcd4;
+    border: none;
+}
+
+.modal-footer .btn-primary:hover {
+    background-color: #0097a7;
+}
