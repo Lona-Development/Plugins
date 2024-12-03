@@ -6,6 +6,7 @@ use LonaDB\Plugins\Server;
 use LonaDB\Plugins\Request;
 use LonaDB\Plugins\Response;
 
+use LonaDB\Enums\Permission;
 use LonaDB\Plugins\PluginBase;
 
 class Webinterface extends PluginBase
@@ -41,7 +42,7 @@ class Webinterface extends PluginBase
     
     private function checkLogin(string $username, string $password): bool {
         $password = str_replace("\r\n", "", $password);
-        $result = $this->getLonaDB()->userManager->checkPassword($username, $password);
+        $result = $this->getLonaDB()->getUserManager()->checkPassword($username, $password);
     
         return $result;
     }
@@ -62,7 +63,7 @@ class Webinterface extends PluginBase
 
             $response->render("views/index.view.lona", [
                 "title" => "LonaDB - Home",
-                "tables" => $this->getLonaDB()->tableManager->listTables($request->getSession()["username"])
+                "tables" => $this->getLonaDB()->getTableManager()->listTables($request->getSession()["username"])
             ]);
         });
     
@@ -83,17 +84,17 @@ class Webinterface extends PluginBase
                     return $response->redirect("/login");
             }else return $response->redirect("/login");
 
-            $table = $this->getLonaDB()->tableManager->getTable($request->parameter("name"));
+            $table = $this->getLonaDB()->getTableManager()->getTable($request->parameter("name"));
             if(!$table) return $response->redirect("/");
 
             $data = $table->getData();
             $permissions = $table->getPermissions();
-            $write = $table->checkPermission($request->getSession()["username"], "write");
+            $write = $table->checkPermission($request->getSession()["username"], Permission::WRITE);
             $owner = $table->getOwner();
 
             $response->render("views/table.view.lona", [
                 "title" => "LonaDB - " . $request->parameter("name"),
-                "tables" => $this->getLonaDB()->tableManager->listTables($request->getSession()["username"]),
+                "tables" => $this->getLonaDB()->getTableManager()->listTables($request->getSession()["username"]),
                 "data" => $data,
                 "permissions" => $permissions,
                 "write" => $write,
@@ -108,7 +109,7 @@ class Webinterface extends PluginBase
                     return;
             }else return;
 
-            $this->getLonaDB()->tableManager->createTable(str_replace("\r\n", "", $request->getBody()["table"]), $request->getSession()["username"]);
+            $this->getLonaDB()->getTableManager()->createTable(str_replace("\r\n", "", $request->getBody()["table"]), $request->getSession()["username"]);
             $response->send("ok");
         });
 
@@ -119,7 +120,7 @@ class Webinterface extends PluginBase
                     return;
             }else return;
 
-            $this->getLonaDB()->tableManager->deleteTable(str_replace("\r\n", "", $request->getBody()["table"]), $request->getSession()["username"]);
+            $this->getLonaDB()->getTableManager()->deleteTable(str_replace("\r\n", "", $request->getBody()["table"]), $request->getSession()["username"]);
             $response->send("ok");
         });
     }
@@ -177,10 +178,10 @@ class Webinterface extends PluginBase
     
 
     private function checkConfiguration(): void {
-        if ($this->getLonaDB()->tableManager->getTable("PluginConfiguration")) {
-            if ($this->getLonaDB()->tableManager->getTable("PluginConfiguration")->get("WebinterfacePort", "root") != null) {
-                $this->port = $this->getLonaDB()->tableManager->getTable("PluginConfiguration")->get("WebinterfacePort", "root");
-            }
+        if ($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")) {
+            if ($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("WebinterfacePort", "root") != null) {
+                $this->port = $this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("WebinterfacePort", "root");
+            }else $this->getLogger()->error("Webinterface port has not been found.");
 
             $this->getLogger()->load($this->getName() . " on version " . $this->getVersion() . " has been enabled");
         } else {
