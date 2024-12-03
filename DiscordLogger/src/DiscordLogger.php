@@ -10,9 +10,9 @@ class DiscordLogger extends PluginBase
 
     public function onEnable(): void
     {
-        if($this->getLonaDB()->tableManager->getTable("PluginConfiguration")) {
-                if($this->getLonaDB()->tableManager->getTable("PluginConfiguration")->get("DiscordLoggerWebhookURL", "root") != null)
-                    $this->webhookUrl = $this->getLonaDB()->tableManager->getTable("PluginConfiguration")->get("DiscordLoggerWebhookURL", "root");
+        if($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")) {
+                if($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("DiscordLoggerWebhookURL", "root") != null)
+                    $this->webhookUrl = $this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("DiscordLoggerWebhookURL", "root");
 
             $this->getLogger()->load($this->getName() . " on version " . $this->getVersion() . " has been enabled");
             $this->sendDiscordMessage("Plugin `" . $this->getName() . "` (v" . $this->getVersion() . ") has been enabled.");

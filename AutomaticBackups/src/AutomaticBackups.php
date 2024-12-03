@@ -10,9 +10,9 @@ class AutomaticBackups extends PluginBase
 
     public function onEnable(): void
     {
-        if ($this->getLonaDB()->tableManager->getTable("PluginConfiguration")) {
-            if ($this->getLonaDB()->tableManager->getTable("PluginConfiguration")->get("AutomaticBackupsInterval", "root") != null) {
-                $this->interval = $this->getLonaDB()->tableManager->getTable("PluginConfiguration")->get("AutomaticBackupsInterval", "root");
+        if ($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")) {
+            if ($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("AutomaticBackupsInterval", "root") != null) {
+                $this->interval = $this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("AutomaticBackupsInterval", "root");
             }
 
             $this->getLogger()->load($this->getName() . " on version " . $this->getVersion() . " has been enabled");
@@ -68,9 +68,9 @@ class AutomaticBackups extends PluginBase
     {
         if(!is_dir("./backups")) mkdir("./backups");
         $this->getLogger()->info("Creating backups...");
-        $tables = $this->getLonaDB()->tableManager->listTables();
+        $tables = $this->getLonaDB()->getTableManager()->listTables();
         forEach($tables as $table){
-            $data = $this->getLonaDB()->tableManager->getTable($table)->getData();
+            $data = $this->getLonaDB()->getTableManager()->getTable($table)->getData();
             file_put_contents("./backups/".$table."_".date('Ymd-Hi', time()).".json", json_encode($data));
         }
     }
