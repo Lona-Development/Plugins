@@ -49,6 +49,13 @@
                             echo "<td>".json_encode($value, JSON_PRETTY_PRINT)."</td>";
                         else echo "<td>{$value}</td>"; 
                         echo "<td>".gettype($value)."</td>";
+                        echo "<td>";
+                            //buttons for delete and edit
+                            //delete will execute js function
+                            echo "<button class='btn btn-danger' onclick='deleteRow(\"{$key}\", \"{$arguments['title']}\")'>Delete</button>";
+                            //edit will open modal with form
+                            echo "<button class='btn btn-primary' data-toggle='modal' data-target='#modalEdit' onclick='editEntry(\"{$key}\", \"{$arguments['title']}\")'>Edit</button>";
+                        echo "</td>";
                         echo "</tr>";
                     }?>
                 </tbody>
