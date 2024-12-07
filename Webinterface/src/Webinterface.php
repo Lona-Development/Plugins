@@ -53,6 +53,7 @@ class Webinterface extends PluginBase
 
         $this->registerLoginManagement($server);
         $this->registerTableManagement($server);
+        $this->registerVariableManagement($server);
         
         $server->get('/', function(Request $request, Response $response) {
             if( $request->getSession()["username"] != null &&
@@ -74,6 +75,37 @@ class Webinterface extends PluginBase
         });
     
         $server->listen();
+    }
+
+    private function registerVariableManagement(Server $server): void {
+        $server->post('/set/variable', function(Request $request, Response $response) {
+            if( $request->getSession()["username"] != null &&
+                $request->getSession()["password"] != null){
+                if(!$this->checkLogin($request->getSession()["username"], $request->getSession()["password"]))
+                    return;
+            }else return;
+
+            $this->getLonaDB()->getTableManager()->getTable($request->getBody()['table'])->set(
+                str_replace("\r\n", "", $request->getBody()["key"]),
+                str_replace("\r\n", "", $request->getBody()["value"]), 
+                $request->getSession()["username"]
+            );
+            $response->send("ok");
+        });
+
+        $server->post('/delete/variable', function(Request $request, Response $response) {
+            if( $request->getSession()["username"] != null &&
+                $request->getSession()["password"] != null){
+                if(!$this->checkLogin($request->getSession()["username"], $request->getSession()["password"]))
+                    return;
+            }else return;
+
+            $this->getLonaDB()->getTableManager()->getTable($request->getBody()['table'])->delete(
+                str_replace("\r\n", "", $request->getBody()["key"]), 
+                $request->getSession()["username"]
+            );
+            $response->send("ok");
+        });
     }
 
     private function registerTableManagement(Server $server): void {

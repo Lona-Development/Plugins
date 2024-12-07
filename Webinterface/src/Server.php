@@ -102,7 +102,7 @@ class Server {
     
             // Separate headers from body
             foreach ($lines as $line) {
-                if (trim($line) === "") {
+                if (strlen($line) == 0) {
                     $isBody = true;  // Blank line indicates the start of the body
                     continue;
                 }
@@ -125,11 +125,11 @@ class Server {
     
             // Parse body content based on Content-Type
             $parsedBody = [];
-            if (isset($headers['content-type'])) {
-                if (strpos($headers['content-type'], 'application/json') !== false) {
+            if (isset($headers['content-type']) || isset($headers['Content-Type'])) {
+                if (strpos($headers['content-type'], 'application/json') !== false || strpos($headers['Content-Type'], 'application/json') !== false) {
                     // Parse JSON body
                     $parsedBody = json_decode($body, true) ?? [];
-                } elseif (strpos($headers['content-type'], 'application/x-www-form-urlencoded') !== false) {
+                } elseif (strpos($headers['content-type'], 'application/x-www-form-urlencoded') !== false || strpos($headers['Content-Type'], 'application/x-www-form-urlencoded') !== false) {
                     // Parse URL-encoded body
                     parse_str($body, $parsedBody);
                 }
