@@ -1,8 +1,8 @@
 <?php
 
-namespace LonaDB\Plugins;
+namespace LonaDB\Plugin\Webinterface;
 
-use LonaDB\Plugins\Webinterface;
+use LonaDB\Plugin\Webinterface\Main;
 
 class Response {
     private int $status;
@@ -11,9 +11,9 @@ class Response {
     private $client;
     private array $session = [];
     private $sessionId;
-    private Webinterface $plugin;
+    private Main $plugin;
 
-    public function __construct($client, Webinterface $plugin, array $session = [], $sessionId, int $status = 200, string $content = '', string $type = 'text/html') {
+    public function __construct($client, Main $plugin, array $session = [], $sessionId, int $status = 200, string $content = '', string $type = 'text/html') {
         $this->status = $status;
         $this->session = $session;
         $this->content = $content;

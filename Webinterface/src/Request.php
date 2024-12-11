@@ -1,5 +1,6 @@
 <?php
-namespace LonaDB\Plugins;
+
+namespace LonaDB\Plugin\Webinterface;
 
 class Request {
     private string $method;

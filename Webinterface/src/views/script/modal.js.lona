@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (xhr.status === 200) {
                 // Successfully created the table, redirect or update as needed
                 alert('Table created successfully!');
-                window.location.reload(); // Redirect to the tables list
+                window.location.href = "/table/" + tableName.trim();
             } else {
                 // Handle errors, e.g. invalid response or server error
                 alert('Failed to create table. Please try again.');

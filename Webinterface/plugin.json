@@ -3,9 +3,9 @@
     "author": "Hymmel",
     "version": "1.0.0",
     "main": {
-        "path": "src/Webinterface.php",
-        "namespace": "LonaDB\\Plugins",
-        "class": "Webinterface"
+        "path": "src/Main.php",
+        "namespace": "LonaDB\\Plugin\\Webinterface",
+        "class": "Main"
     },
     "build": false
 }

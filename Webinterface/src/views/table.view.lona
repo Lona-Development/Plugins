@@ -8,28 +8,23 @@
         <?php include "style/index.css.lona"; ?>
     </style>
     <style>
-        table {
-            color: #ffffff;
-            margin: 20px auto;
-            background-color: #1f1f1f;
-        }
-        thead {
-            background-color: #343a40;
-        }
-        tbody tr:nth-child(even) {
-            background-color: #282c34;
-        }
-        tbody tr:nth-child(odd) {
-            background-color: #1f1f1f;
-        }
+        <?php include "style/modal.css.lona"; ?>
     </style>
+    <style>
+        <?php include "style/table.css.lona"; ?>
+    </style>
+    <script>
+        <?php include "script/table.js.lona"; ?>
+    </script>
 </head>
     <body>
         <?php include "util/navbar.util.lona"; ?>
         <?php include "util/modal.util.lona"; ?>
 
+        <?php include "util/table.util.lona"; ?>
+
         <div class="container mt-5">
-            <h1 class="text-center"><?php echo str_replace("LonaDB - ", "", $arguments["title"]); ?></h1>
+            <h1 class="text-center"><?php echo $arguments["table"]; ?></h1>
 
             <table class="table table-dark table-hover table-bordered">
                 <thead>
@@ -37,7 +32,10 @@
                         <th>Key</th>
                         <th>Value</th>
                         <th>Type</th>
-                        <th></th>
+                        <th>
+                            <button class="btn btn-success action-btn" data-toggle="modal" data-target="#modalAdd" onclick='newRow()'><i class="fa-solid fa-plus"></i></button>
+                            <button class="btn btn-danger action-btn" data-togle="modal" data-target="#modalDeleteTable" onclick='deleteTable()'><i class="fa-solid fa-trash"></i></button>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -48,13 +46,22 @@
                         if(gettype($value) == "array")
                             echo "<td>".json_encode($value, JSON_PRETTY_PRINT)."</td>";
                         else echo "<td>{$value}</td>"; 
-                        echo "<td>".gettype($value)."</td>";
+                        echo "<td>".ucfirst(gettype($value))."</td>";
                         echo "<td>";
-                            //buttons for delete and edit
-                            //delete will execute js function
-                            echo "<button class='btn btn-danger' onclick='deleteRow(\"{$key}\", \"{$arguments['title']}\")'>Delete</button>";
-                            //edit will open modal with form
-                            echo "<button class='btn btn-primary' data-toggle='modal' data-target='#modalEdit' onclick='editEntry(\"{$key}\", \"{$arguments['title']}\")'>Edit</button>";
+                            if($value = $arguments["data"][$key]){
+                                switch(gettype($value)){
+                                    case "array":
+                                        echo "<button class='btn btn-primary action-btn' data-toggle='modal' data-target='#modalEdit' onclick='editRow(\"{$key}\", \"".addslashes(json_encode($value))."\")'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
+                                        break;
+                                    case "string":
+                                        $valueEntities = htmlentities($value);
+                                        echo "<button class='btn btn-primary action-btn' data-toggle='modal' data-target='#modalEdit' onclick='editRow(\"{$key}\", \"{$valueEntities}\")'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
+                                        break;
+                                    default:
+                                        echo "<button class='btn btn-primary actin-btn' data-toggle='modal' data-target='#modalEdit' onclick='editRow(\"{$key}\", {$value})'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
+                                }
+                                echo "<button class='btn btn-danger action-btn' onclick='deleteRow(\"{$key}\")'><i class=\"fa-solid fa-trash\"></i></button>";
+                            }
                         echo "</td>";
                         echo "</tr>";
                     }?>

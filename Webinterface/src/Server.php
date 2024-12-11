@@ -1,19 +1,19 @@
 <?php
 
-namespace LonaDB\Plugins;
+namespace LonaDB\Plugin\Webinterface;
 
-use LonaDB\Plugins\Request;
-use LonaDB\Plugins\Response;
-use LonaDB\Plugins\Webinterface;
+use LonaDB\Plugin\Webinterface\Request;
+use LonaDB\Plugin\Webinterface\Response;
+use LonaDB\Plugin\Webinterface\Main;
 
 class Server {
     private int $port;
     private $socket;
     private array $routes = [];
     private bool $listening = false;
-    private Webinterface $plugin;
+    private Main $plugin;
 
-    public function __construct(Webinterface $plugin, int $port) {
+    public function __construct(Main $plugin, int $port) {
         $this->plugin = $plugin;
         $this->port = $port;
         $this->initializeSocket();

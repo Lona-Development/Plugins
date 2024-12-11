@@ -1,0 +1,9 @@
+.action-btn{
+    margin-left: 0.5vw;
+    margin-top: 0.25vw;
+    margin-bottom: 0.25vw;
+}
+
+.table{
+    margin-top: 2vw;
+}

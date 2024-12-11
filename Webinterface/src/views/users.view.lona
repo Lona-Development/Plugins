@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <?php include "util/head.util.lona"; ?>
+
+    <!-- Render Specific Styles -->
+    <style>
+        <?php include "style/index.css.lona"; ?>
+    </style>
+    <style>
+        <?php include "style/users.css.lona"; ?>
+    </style>
+</head>
+<body>
+    <?php include "util/navbar.util.lona" ?>
+    <?php include "util/modal.util.lona" ?>
+
+    <div class="container mt-5">
+            <h1 class="text-center">Users</h1>
+
+            <table class="table table-dark table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>
+                            <button class="btn btn-success action-btn" data-toggle="modal" data-target="#modalAdd" onclick='newRow()'><i class="fa-solid fa-plus"></i></button>
+                            <button class="btn btn-danger action-btn" data-togle="modal" data-target="#modalDeleteTable" onclick='deleteTable()'><i class="fa-solid fa-trash"></i></button>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($arguments["users"] as $key => $value){
+                        echo "<tr>";
+                        echo "<td>".$key."</td>";
+                        echo "<td>".ucfirst($value)."</td>";
+                        echo "<td>";
+
+                        echo "<button class='btn btn-danger action-btn' onclick='deleteRow(\"{$key}\")'><i class=\"fa-solid fa-trash\"></i></button>";
+
+                        echo "</td>";
+                        echo "</tr>";
+                    }?>
+                </tbody>
+            </table>
+        </div>
+    </body>
+</html>

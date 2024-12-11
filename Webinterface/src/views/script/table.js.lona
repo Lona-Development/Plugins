@@ -1,0 +1,24 @@
+function deleteRow(key){
+    var modalDelete = new bootstrap.Modal(document.getElementById("modalDelete"));
+    modalDelete.show();
+
+    document.getElementById("keyDelete").value = key;
+}
+
+function editRow(key, value){
+    var modalEdit = new bootstrap.Modal(document.getElementById("modalEdit"));
+    modalEdit.show();
+
+    document.getElementById("keyEdit").value = key;
+    document.getElementById("valueEdit").value = value;
+}
+
+function newRow(){
+    var modalAdd = new bootstrap.Modal(document.getElementById("modalAdd"));
+    modalAdd.show();
+}
+
+function deleteTable(){
+    var modalDeleteTable = new bootstrap.Modal(document.getElementById("modalDeleteTable"));
+    modalDeleteTable.show();
+}
