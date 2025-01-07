@@ -33,7 +33,8 @@ class Server {
 
     private function initializeSocket(): void {
         error_reporting(E_ERROR | E_PARSE);
-        $this->socket = socket_create_listen($this->port);
+        $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        //$this->socket = socket_create_listen($this->port);
 
         if ($this->socket == false) {
             $this->plugin->getLogger()->Plugin($this->plugin->getName(), "Failed to create socket: " . socket_strerror(socket_last_error()) . "\n");
@@ -41,6 +42,13 @@ class Server {
         }
 
         socket_set_option($this->socket, SOL_SOCKET, SO_REUSEADDR, 1);
+        socket_set_option($this->socket, SOL_SOCKET, SO_REUSEPORT, 1);
+
+        if (!socket_bind($this->socket, '0.0.0.0', $this->port)) {
+            $this->plugin->getLogger()->Plugin($this->plugin->getName(), "Failed to bind socket: " . socket_strerror(socket_last_error()) . "\n");
+            return;
+        }
+
         $this->plugin->getLogger()->Plugin($this->plugin->getName(), "Server running on port {$this->port}\n");
     }
 
@@ -62,9 +70,9 @@ class Server {
             'handler' => $handler,
         ];
     }
-
+ 
     private function startServer(): void {
-        if(!$this->socket) return;
+        if(!$this->socket || !socket_listen($this->socket)) return;
 
         while (true) {
             $client = socket_accept($this->socket);

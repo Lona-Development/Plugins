@@ -7,6 +7,7 @@ use LonaDB\Plugin\Webinterface\Request;
 use LonaDB\Plugin\Webinterface\Response;
 
 use LonaDB\Enums\Permission;
+use LonaDB\Enums\Event;
 use LonaDB\Plugins\PluginBase;
 
 class Main extends PluginBase
@@ -62,8 +63,11 @@ class Main extends PluginBase
                     return $response->redirect("/login");
             }else return $response->redirect("/login");
 
+            $createTables = $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::TABLE_CREATE);
+
             $response->render("views/index.view.lona", [
                 "title" => "LonaDB - Home",
+                "createTables" => $createTables,
                 "tables" => $this->getLonaDB()->getTableManager()->listTables($request->getSession()["username"])
             ]);
         });
@@ -104,6 +108,12 @@ class Main extends PluginBase
                 $request->getSession()["username"]
             );
 
+            $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::VALUE_SET, [
+                "table" => $request->getBody()['table'],
+                "name" => str_replace("\r\n", "", $request->getBody()["key"]),
+                "value" => $value
+            ]);
+
             $response->redirect("/tables/" . $request->getBody()['table']);
         });
 
@@ -118,6 +128,11 @@ class Main extends PluginBase
                 str_replace("\r\n", "", $request->getBody()["key"]), 
                 $request->getSession()["username"]
             );
+
+            $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::VALUE_REMOVE, [
+                "table" => $request->getBody()['table'],
+                "name" => str_replace("\r\n", "", $request->getBody()["key"])
+            ]);
 
             $response->redirect("/tables/" . $request->getBody()['table']);
         });
@@ -137,17 +152,89 @@ class Main extends PluginBase
             $data = $table->getData();
             $permissions = $table->getPermissions();
             $write = $table->checkPermission($request->getSession()["username"], Permission::WRITE);
+            $read = $table->checkPermission($request->getSession()["username"], Permission::READ);
             $owner = $table->getOwner();
+
+            if(!$read && !$write) return $response->redirect("/");
+            if(!$read) $data = [];
+
+            $createTables = $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::TABLE_CREATE);
 
             $response->render("views/table.view.lona", [
                 "title" => "LonaDB - " . $request->parameter("name"),
+                "createTables" => $createTables,
                 "tables" => $this->getLonaDB()->getTableManager()->listTables($request->getSession()["username"]),
                 "table" => $request->parameter("name"),
                 "data" => $data,
                 "permissions" => $permissions,
                 "write" => $write,
-                "owner" => $owner
+                "owner" => $owner,
+                "username" => $request->getSession()["username"]
             ]);
+        });
+
+        $server->post('/user/table/add', function(Request $request, Response $response) {
+            if( $request->getSession()["username"] != null &&
+                $request->getSession()["password"] != null){
+                if(!$this->checkLogin($request->getSession()["username"], $request->getSession()["password"]))
+                    return $response->redirect("/login");
+            }else return $response->redirect("/login");
+
+            $owner = $this->getLonaDB()->getTableManager()->getTable($request->getBody()["table"])->getOwner();
+            $user = $request->getBody()["username"];
+
+            if($owner != $request->getSession()["username"]) return $response->send("{error: 'not_table_owner'}");
+
+            if(!$this->getLonaDB()->getUserManager()->checkUser($user)) return $response->send("{error: 'user_not_found'}");
+
+            if($request->getBody()["read"] == "true"){
+                $this->getLonaDB()->getTableManager()->getTable($request->getBody()["table"])->addPermission($user, Permission::READ, $request->getSession()["username"]);
+                $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::PERMISSION_ADD, [
+                    "user" => $user,
+                    "name" => $request->getBody()["table"]." - ".Permission::READ->value
+                ]);
+            }
+            if($request->getBody()["write"] == "true"){
+                $this->getLonaDB()->getTableManager()->getTable($request->getBody()["table"])->addPermission($user, Permission::WRITE, $request->getSession()["username"]);
+                $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::PERMISSION_ADD, [
+                    "user" => $user,
+                    "name" => $request->getBody()["table"]." - ".Permission::WRITE->value
+                ]);
+            }
+            
+            $response->send("{success: true}");
+        });
+
+        $server->post('/user/table/update', function(Request $request, Response $response) {
+            if( $request->getSession()["username"] != null &&
+                $request->getSession()["password"] != null){
+                if(!$this->checkLogin($request->getSession()["username"], $request->getSession()["password"]))
+                    return $response->redirect("/login");
+            }else return $response->redirect("/login");
+
+            $owner = $this->getLonaDB()->getTableManager()->getTable($request->getBody()["table"])->getOwner();
+            $user = $request->getBody()["username"];
+
+            if($owner != $request->getSession()["username"]) return $response->send("{error: 'not_table_owner'}");
+
+            if(!$this->getLonaDB()->getUserManager()->checkUser($user)) return $response->send("{error: 'user_not_found'}");
+
+            $permission = Permission::findPermission($request->getBody()["permission"]);
+            if($request->getBody()["value"] == true){
+                $this->getLonaDB()->getTableManager()->getTable($request->getBody()["table"])->addPermission($user, $permission, $request->getSession()["username"]);
+                $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::PERMISSION_ADD, [
+                    "user" => $user,
+                    "name" => $request->getBody()["permission"]
+                ]);
+            }else{
+                $this->getLonaDB()->getTableManager()->getTable($request->getBody()["table"])->removePermission($user, $permission, $request->getSession()["username"]);
+                $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::PERMISSION_REMOVE, [
+                    "user" => $user,
+                    "name" => $request->getBody()["table"]." - ".$request->getBody()["permission"]
+                ]);
+            }
+
+            $response->send("{success: true}");
         });
 
         $server->post('/create/table', function(Request $request, Response $response) {
@@ -157,7 +244,16 @@ class Main extends PluginBase
                     return $response->redirect("/login");
             }else return $response->redirect("/login");
 
+            $hasPermission = $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::TABLE_CREATE);
+
+            if(!$hasPermission) return $response->redirect("/");
+
             $this->getLonaDB()->getTableManager()->createTable(str_replace("\r\n", "", $request->getBody()["table"]), $request->getSession()["username"]);
+
+            $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::TABLE_CREATE, [
+                "name" => str_replace("\r\n", "", $request->getBody()["table"])
+            ]);
+            
             $response->redirect("/tables/" . str_replace("\r\n", "", $request->getBody()["table"]));
         });
 
@@ -168,7 +264,15 @@ class Main extends PluginBase
                     return $response->redirect("/login");
             }else return $response->redirect("/login");
 
+            $hasPermission = $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::TABLE_DELETE);
+
+            if(!$hasPermission) return $response->redirect("/");
+
             $this->getLonaDB()->getTableManager()->deleteTable(str_replace("\r\n", "", $request->getBody()["table"]), $request->getSession()["username"]);
+
+            $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::TABLE_DELETE, [
+                "name" => str_replace("\r\n", "", $request->getBody()["table"])
+            ]);
             $response->redirect("/");
         });
     }
@@ -181,13 +285,61 @@ class Main extends PluginBase
                     return $response->redirect("/login");
             }else return $response->redirect("/login");
 
+            $hasPermission = ($this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::USER_CREATE) ||
+                             $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::USER_DELETE));
+
+            if(!$hasPermission) return $response->redirect("/");
+
             $users = $this->getLonaDB()->getUserManager()->listUsers();
+
+            $createTables = $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::TABLE_CREATE);
 
             $response->render("views/users.view.lona", [
                 "title" => "LonaDB - Users",
+                "createTables" => $createTables,
                 "tables" => $this->getLonaDB()->getTableManager()->listTables($request->getSession()["username"]),
                 "users" => $users
             ]);
+        });
+
+        $server->post('/create/user', function(Request $request, Response $response) {
+            if( $request->getSession()["username"] != null &&
+                $request->getSession()["password"] != null){
+                if(!$this->checkLogin($request->getSession()["username"], $request->getSession()["password"]))
+                    return $response->redirect("/login");
+            }else return $response->redirect("/login");
+
+            $hasPermission = ($this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::USER_CREATE) ||
+                $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::USER_DELETE));
+
+            if(!$hasPermission) return $response->redirect("/");
+
+            $this->getLonaDB()->getUserManager()->createUser(str_replace("\r\n", "", $request->getBody()["user"]), str_replace("\r\n", "", $request->getBody()["password"]));
+
+            $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::USER_CREATE, [
+                "name" => str_replace("\r\n", "", $request->getBody()["user"])
+            ]);
+            $response->redirect("/users");
+        });
+
+        $server->post('/delete/user', function(Request $request, Response $response) {
+            if( $request->getSession()["username"] != null &&
+                $request->getSession()["password"] != null){
+                if(!$this->checkLogin($request->getSession()["username"], $request->getSession()["password"]))
+                    return $response->redirect("/login");
+            }else return $response->redirect("/login");
+
+            $hasPermission = ($this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::USER_CREATE) ||
+                $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::USER_DELETE));
+
+            if(!$hasPermission) return $response->redirect("/");
+
+            $this->getLonaDB()->getUserManager()->deleteUser(str_replace("\r\n", "", $request->getBody()["user"]));
+
+            $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::USER_DELETE, [
+                "name" => str_replace("\r\n", "", $request->getBody()["user"])
+            ]);
+            $response->redirect("/users");
         });
     }
 

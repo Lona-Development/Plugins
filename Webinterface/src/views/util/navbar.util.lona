@@ -12,8 +12,10 @@
                         Tables
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item text-light" href="#" id="createTableBtn" data-bs-toggle="modal" data-bs-target="#createTableModal">Create New Table</a></li>
-                        <li><hr class="dropdown-divider"></li>
+                        <?php if($arguments["createTables"]) { 
+                            echo "<li><a class=\"dropdown-item text-light\" href=\"#\" id=\"createTableBtn\" data-bs-toggle=\"modal\" data-bs-target=\"#createTableModal\">Create New Table</a></li>"; 
+                            echo "<li><hr class=\"dropdown-divider\"></li>";
+                        }?>
                         <?php 
                           foreach($arguments['tables'] as $table){
                             echo "<li><a class=\"dropdown-item text-light\" href=\"/tables/{$table}\">{$table}</a></li>"; 

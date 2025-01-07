@@ -33,8 +33,10 @@
                         <th>Value</th>
                         <th>Type</th>
                         <th>
-                            <button class="btn btn-success action-btn" data-toggle="modal" data-target="#modalAdd" onclick='newRow()'><i class="fa-solid fa-plus"></i></button>
-                            <button class="btn btn-danger action-btn" data-togle="modal" data-target="#modalDeleteTable" onclick='deleteTable()'><i class="fa-solid fa-trash"></i></button>
+                            <?php if($arguments["write"]){ 
+                                echo "<button class=\"btn btn-success action-btn\" data-toggle=\"modal\" data-target=\"#modalAdd\" onclick='newRow()'><i class=\"fa-solid fa-plus\"></i></button>";
+                                echo "<button class=\"btn btn-danger action-btn\" data-togle=\"modal\" data-target=\"#modalDeleteTable\" onclick='deleteTable()'><i class=\"fa-solid fa-trash\"></i></button>";
+                            }?>
                         </th>
                     </tr>
                 </thead>
@@ -48,25 +50,141 @@
                         else echo "<td>{$value}</td>"; 
                         echo "<td>".ucfirst(gettype($value))."</td>";
                         echo "<td>";
-                            if($value = $arguments["data"][$key]){
-                                switch(gettype($value)){
-                                    case "array":
-                                        echo "<button class='btn btn-primary action-btn' data-toggle='modal' data-target='#modalEdit' onclick='editRow(\"{$key}\", \"".addslashes(json_encode($value))."\")'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
-                                        break;
-                                    case "string":
-                                        $valueEntities = htmlentities($value);
-                                        echo "<button class='btn btn-primary action-btn' data-toggle='modal' data-target='#modalEdit' onclick='editRow(\"{$key}\", \"{$valueEntities}\")'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
-                                        break;
-                                    default:
-                                        echo "<button class='btn btn-primary actin-btn' data-toggle='modal' data-target='#modalEdit' onclick='editRow(\"{$key}\", {$value})'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
+                            if($arguments["write"]){
+                                if($value = $arguments["data"][$key]){
+                                    switch(gettype($value)){
+                                        case "array":
+                                            echo "<button class='btn btn-primary action-btn' data-toggle='modal' data-target='#modalEdit' onclick='editRow(\"{$key}\", \"".addslashes(json_encode($value))."\")'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
+                                            break;
+                                        case "string":
+                                            $valueEntities = htmlentities($value);
+                                            echo "<button class='btn btn-primary action-btn' data-toggle='modal' data-target='#modalEdit' onclick='editRow(\"{$key}\", \"{$valueEntities}\")'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
+                                            break;
+                                        default:
+                                            echo "<button class='btn btn-primary actin-btn' data-toggle='modal' data-target='#modalEdit' onclick='editRow(\"{$key}\", {$value})'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
+                                    }
+                                    echo "<button class='btn btn-danger action-btn' onclick='deleteRow(\"{$key}\")'><i class=\"fa-solid fa-trash\"></i></button>";
                                 }
-                                echo "<button class='btn btn-danger action-btn' onclick='deleteRow(\"{$key}\")'><i class=\"fa-solid fa-trash\"></i></button>";
                             }
                         echo "</td>";
                         echo "</tr>";
                     }?>
                 </tbody>
             </table>
+
+            <script>
+                function newUser(){
+                    document.getElementById("newUser").value = "";
+                    //show modal
+                    var modal = new bootstrap.Modal(document.getElementById("modalAddUser"));
+                    modal.show();
+                }
+
+                async function addUser(){
+                    var username = document.getElementById("newUser").value;
+                    var read = document.getElementById("read").checked;
+                    var write = document.getElementById("write").checked;
+
+                    await fetch("/user/table/add", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            table: "<?php echo $arguments["table"]; ?>",
+                            username: username,
+                            read: read,
+                            write: write
+                        })
+                    });
+                    //hide modal
+                    var modal = new bootstrap.Modal(document.getElementById("modalAddUser"));
+                    modal.hide();
+
+                    location.reload();
+                }
+
+                async function changePermission(username, permission, value){
+                    newValue = true;
+                    if(value === 1) newValue = false;
+
+                    await fetch("/user/table/update", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            table: "<?php echo $arguments["table"]; ?>",
+                            username: username,
+                            permission: permission,
+                            value: newValue
+                        })
+                    });
+
+                    location.reload();
+                }
+            </script>
+
+            <!-- modal new user -->
+            <div class="modal fade" id="modalAddUser" tabindex="-1" aria-labelledby="modalAddUserLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalAddUserLabel">Add User</h5>
+                            <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="text" class="form-control" id="newUser" placeholder="Username">
+                            <!-- checkboxes -->
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="read">
+                                <label class="form-check-label" for="read">Read</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="write">
+                                <label class="form-check-label" for="write">Write</label>
+                            </div>
+                            <button class="btn btn-success mt-3" onclick="addUser()">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <?php if($arguments["owner"] == $arguments["username"]){ ?>
+                <!-- Table users -->
+                <table class="table table-dark table-hover table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Read</th>
+                            <th>Write</th>
+                            <th>
+                                <button class="btn btn-success action-btn" data-toggle="modal" data-target="#modalAddUser" onclick="newUser()"><i class="fa-solid fa-plus"></i></button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php 
+                        foreach($arguments["permissions"] as $user => $permissions){
+                            echo "<tr>";
+                            echo "<td>{$user}</td>";
+                            echo "<td>".($permissions["read"] ? "Yes" : "No")."</td>";
+                            echo "<td>".($permissions["write"] ? "Yes" : "No")."</td>";
+                            echo "<td>";
+
+                            $statusRead = "success";
+                            if($permissions["read"]) $statusRead = "danger";
+                            $statusWrite = "success";
+                            if($permissions["write"]) $statusWrite = "danger";
+
+                            echo "<button class='btn btn-{$statusRead} action-btn' onclick='changePermission(\"{$user}\", \"read\", {$permissions["read"]})'><i class=\"fa-solid fa-eye\"></i></button>";
+                            echo "<button class='btn btn-{$statusWrite} action-btn' onclick='changePermission(\"{$user}\", \"write\", {$permissions["write"]})'><i class=\"fa-solid fa-pen-to-square\"></i></button>";
+                            echo "</td>";
+                            echo "</tr>";
+                        }?>
+                    </tbody>
+                </table>
+            <?php } ?>
         </div>
     </body>
 </html>
