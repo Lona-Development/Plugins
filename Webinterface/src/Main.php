@@ -7,6 +7,7 @@ use LonaDB\Plugin\Webinterface\Request;
 use LonaDB\Plugin\Webinterface\Response;
 
 use LonaDB\Enums\Permission;
+use LonaDB\Enums\Role;
 use LonaDB\Enums\Event;
 use LonaDB\Plugins\PluginBase;
 
@@ -55,6 +56,7 @@ class Main extends PluginBase
         $this->registerTableManagement($server);
         $this->registerVariableManagement($server);
         $this->registerUserManagement($server);
+        $this->registerPermissionManagement($server);
         
         $server->get('/', function(Request $request, Response $response) {
             if( $request->getSession()["username"] != null &&
@@ -154,6 +156,7 @@ class Main extends PluginBase
             $write = $table->checkPermission($request->getSession()["username"], Permission::WRITE);
             $read = $table->checkPermission($request->getSession()["username"], Permission::READ);
             $owner = $table->getOwner();
+            $role = $this->getLonaDB()->getUserManager()->getRole($request->getSession()["username"]);
 
             if(!$read && !$write) return $response->redirect("/");
             if(!$read) $data = [];
@@ -169,7 +172,8 @@ class Main extends PluginBase
                 "permissions" => $permissions,
                 "write" => $write,
                 "owner" => $owner,
-                "username" => $request->getSession()["username"]
+                "username" => $request->getSession()["username"],
+                "role" => $role
             ]);
         });
 
@@ -182,8 +186,12 @@ class Main extends PluginBase
 
             $owner = $this->getLonaDB()->getTableManager()->getTable($request->getBody()["table"])->getOwner();
             $user = $request->getBody()["username"];
+            $role = $this->getLonaDB()->getUserManager()->getRole($request->getSession()["username"]);
 
-            if($owner != $request->getSession()["username"]) return $response->send("{error: 'not_table_owner'}");
+            if( $owner !== $request->getSession()["username"]
+                && $role->value !== "administrator"
+                && $role->value !== "superuser"
+            ) return $response->send("{error: 'not_table_owner'}");
 
             if(!$this->getLonaDB()->getUserManager()->checkUser($user)) return $response->send("{error: 'user_not_found'}");
 
@@ -214,8 +222,12 @@ class Main extends PluginBase
 
             $owner = $this->getLonaDB()->getTableManager()->getTable($request->getBody()["table"])->getOwner();
             $user = $request->getBody()["username"];
+            $role = $this->getLonaDB()->getUserManager()->getRole($request->getSession()["username"]);
 
-            if($owner != $request->getSession()["username"]) return $response->send("{error: 'not_table_owner'}");
+            if( $owner != $request->getSession()["username"]
+                && $role->value != "administrator"
+                && $role->value != "superuser"
+            ) return $response->send("{error: 'not_table_owner'}");
 
             if(!$this->getLonaDB()->getUserManager()->checkUser($user)) return $response->send("{error: 'user_not_found'}");
 
@@ -264,9 +276,12 @@ class Main extends PluginBase
                     return $response->redirect("/login");
             }else return $response->redirect("/login");
 
-            $hasPermission = $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::TABLE_DELETE);
-
-            if(!$hasPermission) return $response->redirect("/");
+            $owner = $this->getLonaDB()->getTableManager()->getTable(str_replace("\r\n", "", $request->getBody()["table"]))->getOwner();
+            $role = $this->getLonaDB()->getUserManager()->getRole($request->getSession()["username"]);
+            if( $owner != $request->getSession()["username"]
+                && $role->value != "administrator"
+                && $role->value != "superuser"
+            ) return $response->redirect("/");
 
             $this->getLonaDB()->getTableManager()->deleteTable(str_replace("\r\n", "", $request->getBody()["table"]), $request->getSession()["username"]);
 
@@ -299,6 +314,37 @@ class Main extends PluginBase
                 "createTables" => $createTables,
                 "tables" => $this->getLonaDB()->getTableManager()->listTables($request->getSession()["username"]),
                 "users" => $users
+            ]);
+        });
+
+        $server->get('/users/:name', function(Request $request, Response $response) {
+            if( $request->getSession()["username"] != null &&
+                $request->getSession()["password"] != null){
+                if(!$this->checkLogin($request->getSession()["username"], $request->getSession()["password"]))
+                    return $response->redirect("/login");
+            }else return $response->redirect("/login");
+
+            $hasPermission = ($this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::USER_CREATE) ||
+                             $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::USER_DELETE));
+
+            if(!$hasPermission) return $response->redirect("/");
+
+            $userPermissions = $this->getLonaDB()->getUserManager()->getPermissions($request->parameter("name"));
+            $userRole = $this->getLonaDB()->getUserManager()->getRole($request->parameter("name"));
+
+            $permissions = Permission::all();
+
+            $createTables = $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::TABLE_CREATE);
+
+            $response->render("views/permissions.view.lona", [
+                "title" => "LonaDB - " . $request->parameter("name"),
+                "createTables" => $createTables,
+                "tables" => $this->getLonaDB()->getTableManager()->listTables($request->getSession()["username"]),
+                "userPermissions" => $userPermissions,
+                "userRole" => $userRole,
+                "user" => $request->parameter("name"),
+                "isRoot" => $request->parameter("name") == "root",
+                "permissions" => $permissions
             ]);
         });
 
@@ -340,6 +386,63 @@ class Main extends PluginBase
                 "name" => str_replace("\r\n", "", $request->getBody()["user"])
             ]);
             $response->redirect("/users");
+        });
+    }
+
+    private function registerPermissionManagement(Server $server): void{
+        $server->get('/permissions/edit/:user/:permission', function(Request $request, Response $response) {
+            if( $request->getSession()["username"] != null &&
+                $request->getSession()["password"] != null){
+                if(!$this->checkLogin($request->getSession()["username"], $request->getSession()["password"]))
+                    return $response->redirect("/login");
+            }else return $response->redirect("/login");
+
+            $hasPermission = ($this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::PERMISSION_ADD) ||
+                $this->getLonaDB()->getUserManager()->checkPermission($request->getSession()["username"], Permission::PERMISSION_REMOVE));
+
+            if(!$hasPermission) return $response->redirect("/users");
+
+            $permission = Permission::findPermission($request->parameter("permission"));
+            $user = $request->parameter("user");
+
+            if($permission == null) return $response->redirect("/users/".$user);
+
+            if($this->getLonaDB()->getUserManager()->checkPermission($user, $permission)){
+                $this->getLonaDB()->getUserManager()->removePermission($user, $permission, $request->getSession()["username"]);
+                $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::PERMISSION_REMOVE, [
+                    "user" => $user,
+                    "name" => $permission->value
+                ]);
+            }else{
+                $this->getLonaDB()->getUserManager()->addPermission($user, $permission, $request->getSession()["username"]);
+                $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::PERMISSION_ADD, [
+                    "user" => $user,
+                    "name" => $permission->value
+                ]);
+            }
+
+            $response->redirect("/users/".$user);
+        });
+
+        $server->get('/role/edit/:user', function(Request $request, Response $response) {
+            if( $request->getSession()["username"] != null &&
+                $request->getSession()["password"] != null){
+                if(!$this->checkLogin($request->getSession()["username"], $request->getSession()["password"]))
+                    return $response->redirect("/login");
+            }else return $response->redirect("/login");
+
+            if($request->getSession()["username"] !== "root") return $response->redirect("/users");
+            if($request->parameter("user") == "root") return $response->redirect("/users");
+
+            $role = $this->getLonaDB()->getUserManager()->getRole($request->parameter("user"));
+
+            if($role == Role::ADMIN){
+                $this->getLonaDB()->getUserManager()->setRole($request->parameter("user"), Role::USER);
+            }else{
+                $this->getLonaDB()->getUserManager()->setRole($request->parameter("user"), Role::ADMIN);
+            }
+
+            $response->redirect("/users/".$request->parameter("user"));
         });
     }
 
