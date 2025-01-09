@@ -21,7 +21,9 @@ class Main extends PluginBase
 
         if ($this->port != 0) {
             $this->startWebinterface();
-        }
+        } else {
+            $this->port = 5050;
+            $this->startWebinterface();
     }
 
     private function startWebinterface(): void {
