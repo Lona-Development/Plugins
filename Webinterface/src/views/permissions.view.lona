@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <?php include "util/head.util.lona"; ?>
+
+    <!-- Render Specific Styles -->
+    <style>
+        <?php include "style/index.css.lona"; ?>
+    </style>
+</head>
+<body>
+    <?php include "util/navbar.util.lona" ?>
+    <?php include "util/modal.util.lona" ?>
+
+    <!-- Table for permissions -->
+    <div class="container mt-5">
+        <h1 class="text-center">Permissions - <?php echo $arguments["user"] ?> </h1>
+        <div class="row">
+            <div class="col-md-12">
+                <table class="table table-dark table-hover table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Permission</th>
+                            <th>Status</th>
+                            <th>
+                                <a href="/role/edit/<?php echo $arguments["user"]; ?>" class="btn btn-<?php if($arguments["userRole"]->value == "administrator") echo "warning"; else echo "primary"; ?>"><?php if($arguments["userRole"]->value == "administrator") echo "Administrator"; else echo "User"; ?></a>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($arguments["permissions"] as $name => $permission) { 
+                        if($permission->value !== "read" && $permission->value !== "write"){?>
+                                <tr>
+                                    <td><?php echo $name; ?></td>
+                                    <td><?php if($arguments["userPermissions"][$permission->value]) echo "<p class=\"text-success\">Allowed</p>"; else echo "<p class=\"text-danger\">Denied</p>"; ?></td>
+                                    <td>
+                                        <a href="/permissions/edit/<?php echo $arguments["user"]; echo "/"; echo $permission->value; ?>" class="btn btn-<?php if($arguments["userPermissions"][$permission->value]) echo "danger"; else echo "success"; ?>"><i class="fas fa-edit"></i></a>
+                                    </td>
+                                </tr>
+                            <?php }
+                        } ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </body>
+</html>
