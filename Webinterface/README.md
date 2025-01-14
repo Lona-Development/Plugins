@@ -1,18 +1,18 @@
-# Webinterface
+# Web Interface
 
-## Übersicht
-Das Webinterface bietet eine benutzerfreundliche Möglichkeit, um mit dem Server zu interagieren. Es ermöglicht die Verwaltung von Daten, Benutzern und Einstellungen über eine intuitive Oberfläche.
+## Overview
+The web interface provides a user-friendly way to interact with the server. It enables the management of data, users, and settings through an intuitive interface.
 
-## Funktionen
-- **Benutzerverwaltung**: Erstellen, Bearbeiten und Löschen von Benutzern.
-- **Datensatzverwaltung**: Anzeigen und Bearbeiten von Datenbankeinträgen.
-- **Konfiguration**: Anpassen von Einstellungen direkt über das Webinterface.
+## Features
+- **User Management**: Create, edit, and delete users.
+- **Dataset Management**: View and edit database entries.
+- **Configuration**: Adjust settings directly through the web interface.
 
-## Nutzung
-0. Plugin in den Pluginsorder von der LonaDB Installation kopieren.
-1. Öffne einen Browser und navigiere zu `http://localhost:5050` (oder der konfigurierten URL).
-2. Melde dich mit deinen Zugangsdaten an.
-3. Nutze die Navigation, um die gewünschten Funktionen zu verwenden.
+## Usage
+0. Copy the plugin into the plugins folder of the LonaDB installation.
+1. Open a browser and navigate to `http://localhost:5050` (or the configured URL).
+2. Log in with your credentials.
+3. Use the navigation to access the desired features.
 
-## Mitwirken
-Beiträge sind willkommen! Erstelle bitte einen Pull-Request oder öffne ein Issue, falls du Ideen oder Probleme hast.
+## Contribute
+Contributions are welcome! Please create a pull request or open an issue if you have ideas or encounter problems.
