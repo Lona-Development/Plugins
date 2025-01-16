@@ -20,6 +20,7 @@
 <!-- Custom Styles -->
 <style>
     <?php include dirname(__DIR__)."/style/modal.css.lona"; ?>
+    <?php include dirname(__DIR__)."/style/responsive.css.lona" ?>
 </style>
 
 <!-- Custom Scripts -->
