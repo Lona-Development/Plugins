@@ -41,7 +41,7 @@ class AutomaticBackups extends PluginBase
                     $this->backup();
                 }, $intervalTime);
             }
-        } else this->backup();
+        } else $this->backup();
     }
 
     private function setInterval(callable $callback, int $interval): void
@@ -70,8 +70,15 @@ class AutomaticBackups extends PluginBase
         $this->getLogger()->info("Creating backups...");
         $tables = $this->getLonaDB()->getTableManager()->listTables();
         forEach($tables as $table){
-            $data = $this->getLonaDB()->getTableManager()->getTable($table)->getData();
+            $tableParts = explode(":", file_get_contents($this->getLonaDB()->getBasePath()."/data/tables/".$table.".lona"));
+            $tableData = json_decode(openssl_decrypt($tableParts[0], "AES-256-CBC", $this->getLonaDB()->config["encryptionKey"], 0, base64_decode($tableParts[1])), true);
+
+            $data["table"] = $tableData;
+            if(explode(".", $this->getLonaDB()->getVersion())[0] >= "5"){
+                $walParts = explode(":", file_get_contents($this->getLonaDB()->getBasePath()."/data/wal/".$table.".lona"));
+                $data["wal"] = json_decode(openssl_decrypt($walParts[0], "AES-256-CBC", $this->getLonaDB()->config["encryptionKey"], 0, base64_decode($walParts[1])), true);
+            }
             file_put_contents("./backups/".$table."_".date('Ymd-Hi', time()).".json", json_encode($data));
         }
-    }
+     }
 }
