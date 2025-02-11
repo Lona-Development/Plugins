@@ -17,11 +17,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'  # Change to your PHP version if needed
-          tools: composer
-
-      - name: Install Dependencies
-        run: |
-          composer install --no-dev --prefer-dist
 
       - name: Run build.php
         run: |
