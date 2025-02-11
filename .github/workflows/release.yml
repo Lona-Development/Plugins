@@ -20,7 +20,7 @@ jobs:
 
       - name: Run build.php
         run: |
-          php build.php
+          php -dphar.readonly=0 build.php
 
       - name: Collect PHAR files
         run: |
