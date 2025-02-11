@@ -13,6 +13,7 @@ use LonaDB\Plugins\PluginBase;
 
 class Main extends PluginBase
 {
+    private bool $running = false;
     private int $port = 0;
 
     public function onEnable(): void
@@ -28,20 +29,10 @@ class Main extends PluginBase
     }
 
     private function startWebinterface(): void {
-        // Versuche, den Server in einem neuen Prozess zu starten
-        $pid = pcntl_fork();
-    
-        if ($pid == -1) {
-            // Fehler beim Forken
-            die('Could not fork the process');
-        } elseif ($pid) {
-            // Elternprozess (kann weiterarbeiten)
-            return;  // Elternprozess tut hier nichts weiter
-        } else {
-            // Kindprozess (startet den Server)
-            $this->runServer();
-            exit;  // Beende den Kindprozess nach dem Serverstart
-        }
+        if ($this->running) return;
+        $this->running = true;
+
+        $this->runServer();
     }
     
     private function checkLogin(string $username, string $password): bool {

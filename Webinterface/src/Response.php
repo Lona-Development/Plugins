@@ -3,19 +3,22 @@
 namespace LonaDB\Plugin\Webinterface;
 
 use LonaDB\Plugin\Webinterface\Main;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class Response {
+class Response extends ThreadSafe
+{
     private int $status;
     private string $content;
     private string $type;
     private $client;
-    private array $session = [];
+    private ThreadSafeArray $session;
     private $sessionId;
     private Main $plugin;
 
-    public function __construct($client, Main $plugin, array $session = [], $sessionId, int $status = 200, string $content = '', string $type = 'text/html') {
+    public function __construct($client, Main $plugin, $sessionId, ThreadSafeArray $session = null, int $status = 200, string $content = '', string $type = 'text/html') {
         $this->status = $status;
-        $this->session = $session;
+        $this->session = $session ?? new ThreadSafeArray();
         $this->content = $content;
         $this->type = $type;
         $this->client = $client;
@@ -29,13 +32,14 @@ class Response {
         $this->sendResponse();
     }
 
-    public function json(array $data): void {
+    public function json(ThreadSafeArray $data): void {
         $this->content = json_encode($data);
         $this->type = 'application/json';
         $this->sendResponse();
     }
 
-    public function render(string $file, array $arguments = []): void {
+    public function render(string $file, ThreadSafeArray $arguments = null): void {
+        $arguments = $arguments ?? new ThreadSafeArray();
         // Base directory for files
         $basePath = \Phar::running(true) ?: __DIR__;
         if(str_ends_with($basePath, ".phar")) $basePath .= "/src";
@@ -67,7 +71,7 @@ class Response {
         $this->session[$key] = $value;  // Set session data
     }
 
-    private function encryptData(array $data, string $key): string {
+    private function encryptData(ThreadSafeArray $data, string $key): string {
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
         $encrypted = openssl_encrypt(json_encode($data), AES_256_CBC, $key, 0, $iv);
         return $encrypted . ':' . base64_encode($iv);

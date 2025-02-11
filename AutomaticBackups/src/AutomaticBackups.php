@@ -10,6 +10,7 @@ class AutomaticBackups extends PluginBase
 
     public function onEnable(): void
     {
+	$this->getLonaDB()->getLogger()->info(\Phar::running(true));
         if ($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")) {
             if ($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("AutomaticBackupsInterval", "root") != null) {
                 $this->interval = $this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("AutomaticBackupsInterval", "root");
@@ -46,22 +47,10 @@ class AutomaticBackups extends PluginBase
 
     private function setInterval(callable $callback, int $interval): void
     {
-        $pid = pcntl_fork();
-
-        if ($pid === -1) {
-            $this->getLogger()->error("Failed to fork process for automatic backups.");
-            return;
+        while (true) {
+            $callback();
+            sleep($interval);
         }
-
-        if ($pid === 0) {
-            // Child process
-            while (true) {
-                $callback();
-                sleep($interval);
-            }
-            exit(0); // Ensure child process terminates cleanly
-        }
-        // Parent process continues as normal
     }
 
     private function backup(): void
