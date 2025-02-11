@@ -2,8 +2,8 @@ name: Build and Release PHARs
 
 on:
   push:
-    tags:
-      - "v*" # Triggers when a new version tag is pushed (e.g., v1.0.0)
+    branches:
+      - master
 
 jobs:
   build:
