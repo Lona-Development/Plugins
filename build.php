@@ -5,15 +5,11 @@ foreach (glob('*.phar') as $file) {
     unlink($file);
 }
 
+if(!is_dir('build')) {
+    mkdir('build');
+}
+
 // Loop through all directories and create PHAR files
-// // Build the PHAR
-/*                                        $phar = new \Phar("plugins/".$conf['name']."-".$conf['version'].".phar", 0,
-                                            "plugins/".$conf['name']."-".$conf['version'].".phar");
-                                        $phar->buildFromDirectory("plugins/".$r."/");
-                                        $phar->setDefaultStub($conf['main']['namespace'].'/'.$conf['main']['class'].'.php',
-                                            $conf['main']['namespace'].'/'.$conf['main']['class'].'.php');
-                                        $phar->setAlias($conf['name']."-".$conf['version'].".phar");
-                                        $phar->stopBuffering();*/
 $folders = scandir('.');
 foreach ($folders as $folder) {
     if (is_dir($folder) && $folder != '.' && $folder != '..') {
@@ -26,7 +22,7 @@ foreach ($folders as $folder) {
 
         print 'Building '.$config['name'].'-'.$config['version'].'.phar'.PHP_EOL;
 
-        $phar = new Phar($config['name'].'-'.$config['version'].'.phar', 0, $folder.'/'.$config['name'].'-'.$config['version'].'.phar');
+        $phar = new Phar("build/".$config['name'].'-'.$config['version'].'.phar', 0, $folder.'/build/'.$config['name'].'-'.$config['version'].'.phar');
         $phar->buildFromDirectory($folder.'/');
         $phar->setDefaultStub($config['main']['namespace'].'/'.$config['main']['class'].'.php', $config['main']['namespace'].'/'.$config['main']['class'].'.php');
         $phar->setAlias($config['name'].'-'.$config['version'].'.phar');

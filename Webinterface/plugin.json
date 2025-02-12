@@ -1,11 +1,14 @@
 {
     "name": "Webinterface",
     "author": "Hymmel",
-    "version": "1.1.0",
+    "maintainers": [
+        "Hymmel",
+        "Crypto-1337"
+    ],
+    "version": "1.1.1",
     "main": {
         "path": "src/Main.php",
         "namespace": "LonaDB\\Plugin\\Webinterface",
         "class": "Main"
-    },
-    "build": true
+    }
 }

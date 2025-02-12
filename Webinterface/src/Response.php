@@ -84,12 +84,12 @@ class Response extends ThreadSafe
     private function saveSessionData(): void {
         // Überprüfe, ob eine Session-ID existiert
         if ($this->sessionId) {
-            $basePath = $this->getBasePath();
+            $basePath = $this->plugin->getLonaDB()->getBasePath();
             $filePath = "{$basePath}/data/plugins/Webinterface/sessions/{$this->sessionId}.lona";
     
             // Verschlüssele die Session-Daten
             $encryptedData = $this->encryptData($this->session, $this->plugin->getLonaDB()->config["encryptionKey"]);
-    
+
             // Schreibe die verschlüsselten Daten in die Datei
             file_put_contents($filePath, $encryptedData);
         }

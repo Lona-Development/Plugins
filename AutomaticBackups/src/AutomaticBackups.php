@@ -10,7 +10,6 @@ class AutomaticBackups extends PluginBase
 
     public function onEnable(): void
     {
-	$this->getLonaDB()->getLogger()->info(\Phar::running(true));
         if ($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")) {
             if ($this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("AutomaticBackupsInterval", "root") != null) {
                 $this->interval = $this->getLonaDB()->getTableManager()->getTable("PluginConfiguration")->get("AutomaticBackupsInterval", "root");

@@ -1,11 +1,14 @@
 {
     "name": "AutomaticBackups",
     "author": "Sunnyychi",
+    "maintainers": [
+        "Sunnyychi",
+        "Hymmel"
+    ],
     "version": "1.1.1",
     "main": {
         "path": "src/AutomaticBackups.php",
         "namespace": "Sunnyychi\\LonaDB\\Plugins",
         "class": "AutomaticBackups"
-    },
-    "build": true
+    }
 }

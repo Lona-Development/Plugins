@@ -136,6 +136,9 @@ class Server extends ThreadSafe
             $queryParams = new ThreadSafeArray();
             $queryString = parse_url($uri, PHP_URL_QUERY) ?? '';
             parse_str($queryString, $queryParams);
+            // If type is array, convert to ThreadSafeArray, safety check because of the parse_str function
+            if(is_array($queryParams))
+                $queryParams = ThreadSafeArray::fromArray($queryParams);
     
             // Parse body content based on Content-Type
             $parsedBody = new ThreadSafeArray();
@@ -148,6 +151,9 @@ class Server extends ThreadSafe
                     parse_str($body, $parsedBody);
                 }
             }
+            // If type is array, convert to ThreadSafeArray, safety check because of the parse_str function
+            if(is_array($parsedBody))
+                $parsedBody = ThreadSafeArray::fromArray($parsedBody);
     
             // Routing logic
             $params = new ThreadSafeArray();
@@ -156,14 +162,24 @@ class Server extends ThreadSafe
     
             // Route matching logic
             foreach ($this->routes as $route) {
-                if ($route['method'] === $method && preg_match($route['regex'], $path, $matches)) {
-                    $matches = ThreadSafeArray::fromArray($matches);
-                    $matches->shift();  // Remove full match
+                if ($route['method'] === $method && preg_match($route['regex'], $path, $matchesTemp)) {
+                    if(is_array($matchesTemp))
+                        $matchesTemp = ThreadSafeArray::fromArray($matchesTemp);
+                    $matchesTemp->shift();
+                    // Remove 1 from every index (if int) and delete the last element
+                    $highest = 0;
+                    $matches = new ThreadSafeArray();
+                    foreach ($matchesTemp as $key => $match) {
+                        if (is_int($key)) {
+                            $matches[$key-1] = $match;
+                            if($key > $highest) $highest = $key;
+                        }
+                    }
                     preg_match_all('/:([\w]+)/', $route['path'], $paramKeys);
                     $paramKeys = ThreadSafeArray::fromArray($paramKeys);
                     $paramKeys = $paramKeys[1];
                     $params = $this->threadSafeArrayCombine($paramKeys, $matches);
-    
+
                     // Create request with parsed body
                     $request = new Request($method, $path, $headers, $queryParams, $parsedBody, $params, $sessionData);
                     $route['handler']($request, $response);
@@ -192,7 +208,7 @@ class Server extends ThreadSafe
     }
     
     private function encryptData(ThreadSafeArray $data, string $key): string {
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('AES-256-CBC'));
         $encrypted = openssl_encrypt(json_encode($data->toArray()), 'AES-256-CBC', $key, 0, $iv);
         return $encrypted . ':' . base64_encode($iv);
     }
@@ -203,20 +219,16 @@ class Server extends ThreadSafe
             return new ThreadSafeArray();
         }
 
-        $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $key, 0, base64_decode($parts[1]));
+        $decrypted = openssl_decrypt($parts[0], 'AES-256-CBC', $key, 0, base64_decode($parts[1]));
         return ThreadSafeArray::fromArray(json_decode($decrypted, true) ?? []);
     }
-    
-    private function getBasePath(): string {
-        return \Phar::running() ? dirname(dirname(\Phar::running(false))) : ".";
-    }    
 
     private function getSessionData(?string $sessionId): ThreadSafeArray {
         if (!is_dir("./data/plugins")) mkdir("./data/plugins");
         if (!is_dir("./data/plugins/Webinterface")) mkdir("./data/plugins/Webinterface");
         if (!is_dir("./data/plugins/Webinterface/sessions")) mkdir("./data/plugins/Webinterface/sessions");
         
-        $basePath = $this->getBasePath();
+        $basePath = $this->plugin->getLonaDB()->getBasePath();
         $filePath = "{$basePath}/data/plugins/Webinterface/sessions/{$sessionId}.lona";
     
         // Überprüfe, ob die Datei existiert
@@ -226,7 +238,9 @@ class Server extends ThreadSafe
             // Entschlüssele die Daten
             $decryptedData = $this->decryptData($encryptedData, $this->plugin->getLonaDB()->config["encryptionKey"]);
             if ($decryptedData !== null) {
-                return ThreadSafeArray::fromArray($decryptedData);
+                if(is_array($decryptedData))
+                    $decryptedData = ThreadSafeArray::fromArray($decryptedData);
+                return $decryptedData;
             }
         }
     
@@ -235,7 +249,7 @@ class Server extends ThreadSafe
     }    
     
     private function createSessionFile(string $sessionId): void {
-        $basePath = $this->getBasePath();
+        $basePath = $this->plugin->getLonaDB()->getBasePath();
         $filePath = "{$basePath}/data/plugins/Webinterface/sessions/{$sessionId}.lona";
     
         if (!file_exists($filePath)) {
