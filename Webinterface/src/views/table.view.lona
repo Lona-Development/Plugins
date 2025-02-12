@@ -20,9 +20,7 @@
     <body>
         <?php include "util/navbar.util.lona"; ?>
         <?php include "util/modal.util.lona"; ?>
-
         <?php include "util/table.util.lona"; ?>
-
         <div class="container mt-5">
             <h1 class="text-center"><?php echo $arguments["table"]; ?></h1>
 

@@ -1,7 +1,7 @@
 <?php
 
 // Delete all PHAR files in current directory
-foreach (glob('*.phar') as $file) {
+foreach (glob('build/*.phar') as $file) {
     unlink($file);
 }
 

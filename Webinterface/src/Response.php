@@ -38,15 +38,28 @@ class Response extends ThreadSafe
         $this->sendResponse();
     }
 
+    private function toNormalArray(ThreadSafeArray $data): array {
+        $data = (array) $data;
+
+        foreach ($data as $key => $value) {
+            if ($value instanceof ThreadSafeArray) {
+                $data[$key] = $this->toNormalArray($value);
+            }
+        }
+
+        return $data;
+    }
+
     public function render(string $file, ThreadSafeArray $arguments = null): void {
         $arguments = $arguments ?? new ThreadSafeArray();
+        $arguments = $this->toNormalArray($arguments);
         // Base directory for files
         $basePath = \Phar::running(true) ?: __DIR__;
         if(str_ends_with($basePath, ".phar")) $basePath .= "/src";
     
         // Get the absolute path for the file
         $absolutePath = $basePath . DIRECTORY_SEPARATOR . $file;
-    
+
         if (file_exists($absolutePath)) {
             ob_start();
             include $absolutePath;

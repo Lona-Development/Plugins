@@ -66,16 +66,19 @@ class Server extends ThreadSafe
         $this->addRoute('POST', $path, $handler);
     }
 
-    private function addRoute(string $method, string $path, callable $handler): void {
-        $regex = preg_replace('/:\w+/', '(\w+)', $path); // Ersetzt `:name` durch `(\w+)` (Regex-Pattern)
-        $regex = str_replace('/', '\/', $regex); // Escape `/` für Regex
-        $this->routes[] = ThreadSafeArray::fromArray([
-            'method' => $method,
-            'path' => $path,
-            'regex' => '/^' . $regex . '$/', // Dynamisches Regex-Matching
-            'handler' => $handler,
-        ]);
-    }
+
+private function addRoute(string $method, string $path, callable $handler): void {
+    // Update regex to properly handle dots (.) and hyphens (-) in parameters
+    $regex = preg_replace('/:\w+/', '([a-zA-Z0-9\.-_]+)', $path); // Allow letters, numbers, dot, hyphen, and underscore
+    $regex = str_replace('/', '\/', $regex); // Escape `/` for Regex
+    $this->routes[] = ThreadSafeArray::fromArray([
+        'method' => $method,
+        'path' => $path,
+        'regex' => '/^' . $regex . '$/', // Dynamic regex matching
+        'handler' => $handler,
+    ]);
+}
+
  
     private function startServer(): void {
         if(!$this->socket || !socket_listen($this->socket)) return;
@@ -95,6 +98,20 @@ class Server extends ThreadSafe
 
             $this->handleRequest($data, $client);
         }
+    }
+
+    private function undoPregQuote($quotedString): string {
+        // Define the characters that preg_quote escapes
+        $escapedChars = [
+            '\\.' => '.', '\\+' => '+', '\\*' => '*', '\\?' => '?', '\\[' => '[',
+            '\\]' => ']', '\\(' => '(', '\\)' => ')', '\\{' => '{', '\\}' => '}',
+            '\\|' => '|', '\\^' => '^', '\\$' => '$', '\\\\' => '\\'
+        ];
+
+        // Use preg_replace to reverse the escaping
+        return preg_replace_callback('/\\\\([^\w])/', function($matches) use ($escapedChars) {
+            return isset($escapedChars[$matches[0]]) ? $escapedChars[$matches[0]] : $matches[0];
+        }, $quotedString);
     }
 
     private function handleRequest(string $data, $client): void {
@@ -159,7 +176,8 @@ class Server extends ThreadSafe
             $params = new ThreadSafeArray();
             $routed = false;
             $response = new Response($client, $this->plugin, $sessionId, $sessionData);  // Pass session data
-    
+
+            $path = preg_quote($path, '.');
             // Route matching logic
             foreach ($this->routes as $route) {
                 if ($route['method'] === $method && preg_match($route['regex'], $path, $matchesTemp)) {
@@ -171,7 +189,7 @@ class Server extends ThreadSafe
                     $matches = new ThreadSafeArray();
                     foreach ($matchesTemp as $key => $match) {
                         if (is_int($key)) {
-                            $matches[$key-1] = $match;
+                            $matches[$key-1] = $this->undoPregQuote($match);
                             if($key > $highest) $highest = $key;
                         }
                     }

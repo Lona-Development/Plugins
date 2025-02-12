@@ -258,7 +258,7 @@ class Main extends PluginBase
 
             $this->getLonaDB()->getTableManager()->createTable(str_replace("\r\n", "", $request->getBody()["table"]), $request->getSession()["username"]);
 
-            $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::TABLE_CREATE->value, ThreadSafeArray([
+            $this->getLonaDB()->getPluginManager()->runEvent($request->getSession()["username"], Event::TABLE_CREATE->value, ThreadSafeArray::fromArray([
                 "name" => str_replace("\r\n", "", $request->getBody()["table"])
             ]));
             
