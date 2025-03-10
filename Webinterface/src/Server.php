@@ -2,20 +2,26 @@
 
 namespace LonaDB\Plugin\Webinterface;
 
+define('AES_256_CBC', 'aes-256-cbc');
+
 use LonaDB\Plugin\Webinterface\Request;
 use LonaDB\Plugin\Webinterface\Response;
 use LonaDB\Plugin\Webinterface\Main;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class Server {
+class Server extends ThreadSafe
+{
     private int $port;
     private $socket;
-    private array $routes = [];
+    private ThreadSafeArray $routes;
     private bool $listening = false;
     private Main $plugin;
 
     public function __construct(Main $plugin, int $port) {
         $this->plugin = $plugin;
         $this->port = $port;
+        $this->routes = new ThreadSafeArray();
         $this->initializeSocket();
     }
 
@@ -60,16 +66,19 @@ class Server {
         $this->addRoute('POST', $path, $handler);
     }
 
-    private function addRoute(string $method, string $path, callable $handler): void {
-        $regex = preg_replace('/:\w+/', '(\w+)', $path); // Ersetzt `:name` durch `(\w+)` (Regex-Pattern)
-        $regex = str_replace('/', '\/', $regex); // Escape `/` für Regex
-        $this->routes[] = [
-            'method' => $method,
-            'path' => $path,
-            'regex' => '/^' . $regex . '$/', // Dynamisches Regex-Matching
-            'handler' => $handler,
-        ];
-    }
+
+private function addRoute(string $method, string $path, callable $handler): void {
+    // Update regex to properly handle dots (.) and hyphens (-) in parameters
+    $regex = preg_replace('/:\w+/', '([a-zA-Z0-9\.-_]+)', $path); // Allow letters, numbers, dot, hyphen, and underscore
+    $regex = str_replace('/', '\/', $regex); // Escape `/` for Regex
+    $this->routes[] = ThreadSafeArray::fromArray([
+        'method' => $method,
+        'path' => $path,
+        'regex' => '/^' . $regex . '$/', // Dynamic regex matching
+        'handler' => $handler,
+    ]);
+}
+
  
     private function startServer(): void {
         if(!$this->socket || !socket_listen($this->socket)) return;
@@ -91,6 +100,20 @@ class Server {
         }
     }
 
+    private function undoPregQuote($quotedString): string {
+        // Define the characters that preg_quote escapes
+        $escapedChars = [
+            '\\.' => '.', '\\+' => '+', '\\*' => '*', '\\?' => '?', '\\[' => '[',
+            '\\]' => ']', '\\(' => '(', '\\)' => ')', '\\{' => '{', '\\}' => '}',
+            '\\|' => '|', '\\^' => '^', '\\$' => '$', '\\\\' => '\\'
+        ];
+
+        // Use preg_replace to reverse the escaping
+        return preg_replace_callback('/\\\\([^\w])/', function($matches) use ($escapedChars) {
+            return isset($escapedChars[$matches[0]]) ? $escapedChars[$matches[0]] : $matches[0];
+        }, $quotedString);
+    }
+
     private function handleRequest(string $data, $client): void {
         try {
             // Session handling (same as your implementation)
@@ -104,7 +127,7 @@ class Server {
             $uri = $requestLine[1] ?? '/';
             $path = parse_url($uri, PHP_URL_PATH);
     
-            $headers = [];
+            $headers = new ThreadSafeArray();
             $body = '';
             $isBody = false;
     
@@ -127,35 +150,54 @@ class Server {
             }
     
             // Parse query parameters
-            $queryParams = [];
+            $queryParams = new ThreadSafeArray();
             $queryString = parse_url($uri, PHP_URL_QUERY) ?? '';
             parse_str($queryString, $queryParams);
+            // If type is array, convert to ThreadSafeArray, safety check because of the parse_str function
+            if(is_array($queryParams))
+                $queryParams = ThreadSafeArray::fromArray($queryParams);
     
             // Parse body content based on Content-Type
-            $parsedBody = [];
+            $parsedBody = new ThreadSafeArray();
             if (isset($headers['content-type']) || isset($headers['Content-Type'])) {
                 if (strpos($headers['content-type'], 'application/json') !== false || strpos($headers['Content-Type'], 'application/json') !== false) {
                     // Parse JSON body
-                    $parsedBody = json_decode($body, true) ?? [];
+                    $parsedBody = ThreadSafeArray::fromArray(json_decode($body, true)) ?? new ThreadSafeArray();
                 } elseif (strpos($headers['content-type'], 'application/x-www-form-urlencoded') !== false || strpos($headers['Content-Type'], 'application/x-www-form-urlencoded') !== false) {
                     // Parse URL-encoded body
                     parse_str($body, $parsedBody);
                 }
             }
+            // If type is array, convert to ThreadSafeArray, safety check because of the parse_str function
+            if(is_array($parsedBody))
+                $parsedBody = ThreadSafeArray::fromArray($parsedBody);
     
             // Routing logic
-            $params = [];
+            $params = new ThreadSafeArray();
             $routed = false;
-            $response = new Response($client, $this->plugin, $sessionData, $sessionId);  // Pass session data
-    
+            $response = new Response($client, $this->plugin, $sessionId, $sessionData);  // Pass session data
+
+            $path = preg_quote($path, '.');
             // Route matching logic
             foreach ($this->routes as $route) {
-                if ($route['method'] === $method && preg_match($route['regex'], $path, $matches)) {
-                    array_shift($matches);  // Remove full match
+                if ($route['method'] === $method && preg_match($route['regex'], $path, $matchesTemp)) {
+                    if(is_array($matchesTemp))
+                        $matchesTemp = ThreadSafeArray::fromArray($matchesTemp);
+                    $matchesTemp->shift();
+                    // Remove 1 from every index (if int) and delete the last element
+                    $highest = 0;
+                    $matches = new ThreadSafeArray();
+                    foreach ($matchesTemp as $key => $match) {
+                        if (is_int($key)) {
+                            $matches[$key-1] = $this->undoPregQuote($match);
+                            if($key > $highest) $highest = $key;
+                        }
+                    }
                     preg_match_all('/:([\w]+)/', $route['path'], $paramKeys);
+                    $paramKeys = ThreadSafeArray::fromArray($paramKeys);
                     $paramKeys = $paramKeys[1];
-                    $params = array_combine($paramKeys, $matches);
-    
+                    $params = $this->threadSafeArrayCombine($paramKeys, $matches);
+
                     // Create request with parsed body
                     $request = new Request($method, $path, $headers, $queryParams, $parsedBody, $params, $sessionData);
                     $route['handler']($request, $response);
@@ -183,32 +225,28 @@ class Server {
         return $id;
     }
     
-    private function encryptData(array $data, string $key): string {
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-        $encrypted = openssl_encrypt(json_encode($data), AES_256_CBC, $key, 0, $iv);
+    private function encryptData(ThreadSafeArray $data, string $key): string {
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('AES-256-CBC'));
+        $encrypted = openssl_encrypt(json_encode($data->toArray()), 'AES-256-CBC', $key, 0, $iv);
         return $encrypted . ':' . base64_encode($iv);
     }
-    
-    private function decryptData(string $data, string $key): ?array {
+
+    private function decryptData(string $data, string $key): ThreadSafeArray {
         $parts = explode(':', $data);
         if (count($parts) !== 2) {
-            return null; // Ungültiges Format
+            return new ThreadSafeArray();
         }
-    
-        $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $key, 0, base64_decode($parts[1]));
-        return json_decode($decrypted, true);
-    }   
-    
-    private function getBasePath(): string {
-        return \Phar::running() ? dirname(dirname(\Phar::running(false))) : ".";
-    }    
 
-    private function getSessionData(?string $sessionId): array {
+        $decrypted = openssl_decrypt($parts[0], 'AES-256-CBC', $key, 0, base64_decode($parts[1]));
+        return ThreadSafeArray::fromArray(json_decode($decrypted, true) ?? []);
+    }
+
+    private function getSessionData(?string $sessionId): ThreadSafeArray {
         if (!is_dir("./data/plugins")) mkdir("./data/plugins");
         if (!is_dir("./data/plugins/Webinterface")) mkdir("./data/plugins/Webinterface");
         if (!is_dir("./data/plugins/Webinterface/sessions")) mkdir("./data/plugins/Webinterface/sessions");
         
-        $basePath = $this->getBasePath();
+        $basePath = $this->plugin->getLonaDB()->getBasePath();
         $filePath = "{$basePath}/data/plugins/Webinterface/sessions/{$sessionId}.lona";
     
         // Überprüfe, ob die Datei existiert
@@ -218,16 +256,18 @@ class Server {
             // Entschlüssele die Daten
             $decryptedData = $this->decryptData($encryptedData, $this->plugin->getLonaDB()->config["encryptionKey"]);
             if ($decryptedData !== null) {
+                if(is_array($decryptedData))
+                    $decryptedData = ThreadSafeArray::fromArray($decryptedData);
                 return $decryptedData;
             }
         }
     
         // Rückgabe leerer Daten, falls keine gültigen Daten vorhanden sind
-        return [];
+        return new ThreadSafeArray();
     }    
     
     private function createSessionFile(string $sessionId): void {
-        $basePath = $this->getBasePath();
+        $basePath = $this->plugin->getLonaDB()->getBasePath();
         $filePath = "{$basePath}/data/plugins/Webinterface/sessions/{$sessionId}.lona";
     
         if (!file_exists($filePath)) {
@@ -240,5 +280,21 @@ class Server {
     private function setSessionIdCookie(string $sessionId): void {
         // Set the session ID as a cookie in the response headers
         setcookie("PHPSESSID", $sessionId, time() + 3600, "/");  // Expires in 1 hour
-    }    
+    }
+
+    public static function threadSafeArrayCombine(ThreadSafeArray $keys, ThreadSafeArray $values): ThreadSafeArray {
+        if (count($keys) !== count($values)) {
+            return null; // array_combine returns false if the sizes don't match
+        }
+
+        $combined = new ThreadSafeArray();
+        foreach ($keys as $index => $key) {
+            if (!is_scalar($key)) {
+                return null; // array_combine does not allow non-scalar keys
+            }
+            $combined[$key] = $values[$index];
+        }
+
+        return $combined;
+    }
 }

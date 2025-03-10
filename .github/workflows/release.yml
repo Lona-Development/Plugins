@@ -1,0 +1,59 @@
+name: Build and Release PHARs
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'  # Change to your PHP version if needed
+
+      - name: Run build.php
+        run: |
+          php -dphar.readonly=0 build.php
+
+      - name: Collect PHAR files
+        run: |
+          mkdir -p dist
+          find . -name "*.phar" -exec mv {} dist/ \; # Moves all PHARs to dist/
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: phar-files
+          path: dist/*.phar
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Built Files
+        uses: actions/download-artifact@v4
+        with:
+          name: phar-files
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: "Prebuilt plugin PHAR files."
+          draft: false
+          prerelease: false
+          files: dist/*.phar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

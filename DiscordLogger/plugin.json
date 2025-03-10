@@ -1,11 +1,14 @@
 {
     "name": "DiscordLogger",
     "author": "Sunnyychi",
-    "version": "1.0.2",
+    "maintainers": [
+        "Sunnyychi",
+        "Hymmel"
+    ],
+    "version": "1.0.3",
     "main": {
         "path": "src/DiscordLogger.php",
         "namespace": "Sunnyychi\\LonaDB\\Plugins",
         "class": "DiscordLogger"
-    },
-    "build": false
+    }
 }
