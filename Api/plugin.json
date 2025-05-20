@@ -1,0 +1,10 @@
+{
+    "name": "Api",
+    "version": "1.0.0",
+    "main": {
+        "path": "src/Plugin.php",
+        "namespace": "Plugin",
+        "class": "MainClass"
+    },
+    "build": false
+}
